@@ -25,6 +25,8 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "skill_swap_db")
+DB_PORT = int(os.getenv("DB_PORT", "3306"))
+DB_SSL_CA = os.getenv("DB_SSL_CA", "")
 
 
 # =====================================================
@@ -35,14 +37,19 @@ def get_db_connection(use_database=True):
     """Establishes and returns a MySQL connection."""
     kwargs = {
         "host": DB_HOST,
+        "port": DB_PORT,
         "user": DB_USER,
         "password": DB_PASSWORD,
         "charset": "utf8mb4",
         "use_unicode": True,
         "autocommit": False
     }
+    if DB_SSL_CA:
+        kwargs["ssl_ca"] = DB_SSL_CA
+        kwargs["ssl_verify_cert"] = True
     if use_database:
         kwargs["database"] = DB_NAME
+    return mysql.connector.connect(**kwargs)
     return mysql.connector.connect(**kwargs)
 
 
@@ -2545,4 +2552,5 @@ def internal_server_error(e):
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
