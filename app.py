@@ -2497,8 +2497,9 @@ def sql_reset_database():
         conn = get_db_connection(use_database=False)
         cursor = conn.cursor()
 
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         # Read schema.sql
-        with open("schema.sql", "r", encoding="utf-8") as f:
+        with open(os.path.join(BASE_DIR, "schema.sql"), "r", encoding="utf-8") as f:
             schema_content = f.read()
         schema_stmts = split_sql_statements(schema_content)
 
@@ -2508,7 +2509,7 @@ def sql_reset_database():
                 cursor.fetchall()
 
         # Read seed.sql
-        with open("seed.sql", "r", encoding="utf-8") as f:
+        with open(os.path.join(BASE_DIR, "seed.sql"), "r", encoding="utf-8") as f:
             seed_content = f.read()
         seed_stmts = split_sql_statements(seed_content)
 
