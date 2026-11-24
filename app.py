@@ -2247,6 +2247,51 @@ SAMPLE_QUERIES = [
         "title": "16. View-style Complex Aggregation (Learning Request Full Summary)",
         "category": "Complex Analytics",
         "sql": "SELECT lr.request_id, lr.request_date, lr.status AS request_status, req.name AS requester_name, tch.name AS teacher_name, sk.skill_name, sc.category_name, COUNT(s.session_id) AS total_sessions FROM LEARNING_REQUEST lr JOIN `USER` req ON lr.requester_id = req.user_id JOIN USER_SKILL us ON lr.user_skill_id = us.user_skill_id JOIN `USER` tch ON us.user_id = tch.user_id JOIN SKILL sk ON us.skill_id = sk.skill_id JOIN SKILL_CATEGORY sc ON sk.category_id = sc.category_id LEFT JOIN `SESSION` s ON lr.request_id = s.request_id GROUP BY lr.request_id, lr.request_date, lr.status, req.name, tch.name, sk.skill_name, sc.category_name ORDER BY lr.request_id ASC;"
+    },
+    {
+        "title": "17. Pattern Matching & Wildcards (LIKE % and _)",
+        "category": "Filtering & Patterns",
+        "sql": "SELECT user_id, name, email, phone FROM `USER` WHERE email LIKE '%@gmail.com' AND phone LIKE '91%' ORDER BY name ASC;"
+    },
+    {
+        "title": "18. Conditional Logic (CASE WHEN THEN Teacher Tier)",
+        "category": "Conditional Logic",
+        "sql": "SELECT u.name AS teacher_name, ROUND(AVG(f.rating), 2) AS avg_rating, COUNT(f.feedback_id) AS total_reviews, CASE WHEN AVG(f.rating) >= 4.8 THEN 'Elite Master' WHEN AVG(f.rating) >= 4.0 THEN 'Proficient Mentor' ELSE 'Developing Tutor' END AS tutor_tier FROM FEEDBACK f JOIN `SESSION` s ON f.session_id = s.session_id JOIN LEARNING_REQUEST lr ON s.request_id = lr.request_id JOIN USER_SKILL us ON lr.user_skill_id = us.user_skill_id JOIN `USER` u ON us.user_id = u.user_id WHERE f.reviewer_id = lr.requester_id GROUP BY u.user_id, u.name ORDER BY avg_rating DESC;"
+    },
+    {
+        "title": "19. Date & Time Arithmetic (Duration in Minutes with TIMEDIFF)",
+        "category": "Date & Time Functions",
+        "sql": "SELECT s.session_id, s.session_date, s.start_time, s.end_time, s.status, TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) AS duration_minutes, DATEDIFF(CURDATE(), s.session_date) AS days_since_session, sk.skill_name FROM `SESSION` s JOIN LEARNING_REQUEST lr ON s.request_id = lr.request_id JOIN USER_SKILL us ON lr.user_skill_id = us.user_skill_id JOIN SKILL sk ON us.skill_id = sk.skill_id ORDER BY s.session_date DESC;"
+    },
+    {
+        "title": "20. Two-Way Matchmaking (Users who can Swap Skills Directly)",
+        "category": "Relational Matchmaking",
+        "sql": "SELECT u1.name AS user_a, s1.skill_name AS a_teaches_b, u2.name AS user_b, s2.skill_name AS b_teaches_a FROM USER_SKILL us1_off JOIN `USER` u1 ON us1_off.user_id = u1.user_id JOIN SKILL s1 ON us1_off.skill_id = s1.skill_id JOIN USER_SKILL us2_lrn ON us1_off.skill_id = us2_lrn.skill_id AND us2_lrn.skill_type = 'Learning' JOIN `USER` u2 ON us2_lrn.user_id = u2.user_id JOIN USER_SKILL us2_off ON u2.user_id = us2_off.user_id AND us2_off.skill_type = 'Offering' JOIN SKILL s2 ON us2_off.skill_id = s2.skill_id JOIN USER_SKILL us1_lrn ON us2_off.skill_id = us1_lrn.skill_id AND us1_lrn.user_id = u1.user_id AND us1_lrn.skill_type = 'Learning' WHERE us1_off.skill_type = 'Offering' AND u1.user_id < u2.user_id;"
+    },
+    {
+        "title": "21. Window Functions (DENSE_RANK of Skills per Category)",
+        "category": "Window Functions",
+        "sql": "SELECT sc.category_name, s.skill_name, COUNT(us.user_skill_id) AS tutor_count, DENSE_RANK() OVER (PARTITION BY sc.category_id ORDER BY COUNT(us.user_skill_id) DESC) AS rank_in_category FROM SKILL_CATEGORY sc JOIN SKILL s ON sc.category_id = s.category_id LEFT JOIN USER_SKILL us ON s.skill_id = us.skill_id AND us.skill_type = 'Offering' GROUP BY sc.category_id, sc.category_name, s.skill_id, s.skill_name ORDER BY sc.category_name, rank_in_category;"
+    },
+    {
+        "title": "22. N-th Highest Record (2nd Most Active Teacher by Sessions)",
+        "category": "Subqueries",
+        "sql": "SELECT u.user_id, u.name, COUNT(s.session_id) AS total_sessions FROM `USER` u JOIN USER_SKILL us ON u.user_id = us.user_id JOIN LEARNING_REQUEST lr ON us.user_skill_id = lr.user_skill_id JOIN `SESSION` s ON lr.request_id = s.request_id GROUP BY u.user_id, u.name ORDER BY total_sessions DESC LIMIT 1 OFFSET 1;"
+    },
+    {
+        "title": "23. String Functions (CONCAT, UPPER, Character Length)",
+        "category": "String Functions",
+        "sql": "SELECT user_id, UPPER(name) AS uppercase_name, CONCAT(name, ' <', email, '>') AS formatted_contact, LENGTH(phone) AS phone_digit_count, role FROM `USER` ORDER BY name ASC;"
+    },
+    {
+        "title": "24. Correlated Aggregate (Teachers Above Overall Platform Average)",
+        "category": "Advanced Subqueries",
+        "sql": "SELECT u.name AS teacher_name, ROUND(AVG(f.rating), 2) AS teacher_avg FROM FEEDBACK f JOIN `SESSION` s ON f.session_id = s.session_id JOIN LEARNING_REQUEST lr ON s.request_id = lr.request_id JOIN USER_SKILL us ON lr.user_skill_id = us.user_skill_id JOIN `USER` u ON us.user_id = u.user_id WHERE f.reviewer_id = lr.requester_id GROUP BY u.user_id, u.name HAVING AVG(f.rating) >= (SELECT AVG(rating) FROM FEEDBACK) ORDER BY teacher_avg DESC;"
+    },
+    {
+        "title": "25. NULL Analysis (Unverified Offerings & Pending Admin Actions)",
+        "category": "NULL Handling",
+        "sql": "SELECT us.user_skill_id, u.name AS teacher_name, s.skill_name, sv.verification_status, CASE WHEN sv.verification_id IS NULL THEN 'Never Submitted' WHEN sv.verification_date IS NULL THEN 'Pending Admin Review' ELSE 'Reviewed and Decided' END AS audit_stage FROM USER_SKILL us JOIN `USER` u ON us.user_id = u.user_id JOIN SKILL s ON us.skill_id = s.skill_id LEFT JOIN SKILL_VERIFICATION sv ON us.user_skill_id = sv.user_skill_id WHERE us.skill_type = 'Offering' ORDER BY audit_stage, teacher_name;"
     }
 ]
 
