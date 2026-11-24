@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}My Profile - Skill Swap Management System{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Profile Information & Edit Form -->
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-person-circle me-2 text-primary"></i>User Profile</h5>
+      </div>
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center mb-4">
+          <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center fw-bold fs-3 me-3" style="width: 64px; height: 64px;">
+            {{ user.name[:1].upper() }}
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0">{{ user.name }}</h5>
+            <div class="text-muted small">{{ user.email }}</div>
+            <span class="badge bg-secondary mt-1">{{ user.role }} Account</span>
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('profile') }}">
+          <div class="mb-3">
+            <label for="name" class="form-label fw-semibold small">Full Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="email" class="form-label fw-semibold small">Email Address (Read-only)</label>
+            <input type="email" class="form-control bg-light" id="email" value="{{ user.email }}" readonly>
+            <div class="form-text small">Email cannot be modified once registered.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="phone" class="form-label fw-semibold small">Phone Number</label>
+            <input type="text" class="form-control" id="phone" name="phone" value="{{ user.phone or '' }}" placeholder="Enter phone number">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-muted">Member Since</label>
+            <div class="text-secondary small">{{ user.created_at }}</div>
+          </div>
+
+          <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback & Reputation Received -->
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0"><i class="bi bi-star-fill text-warning me-2"></i>Reviews Received as Teacher</h5>
+        <div>
+          {% if avg_rating %}
+            <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+              {{ avg_rating }} / 5.0 ★
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body p-4">
+        {% if feedbacks %}
+          <div class="list-group list-group-flush">
+            {% for fb in feedbacks %}
+              <div class="list-group-item px-0 py-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="fw-semibold">
+                    {{ fb.reviewer_name }}
+                    <span class="badge bg-light text-dark border ms-2 small">{{ fb.skill_name }}</span>
+                  </div>
+                  <div class="star-rating">
+                    {% for i in range(1, 6) %}
+                      {% if i <= fb.rating %}
+                        <i class="bi bi-star-fill text-warning"></i>
+                      {% else %}
+                        <i class="bi bi-star text-muted"></i>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                {% if fb.comment %}
+                  <p class="mb-1 text-secondary small">"{{ fb.comment }}"</p>
+                {% else %}
+                  <p class="mb-1 text-muted small fst-italic">No comment left.</p>
+                {% endif %}
+                <div class="text-muted small" style="font-size: 0.75rem;">
+                  <i class="bi bi-calendar3 me-1"></i>{{ fb.feedback_date }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-chat-square-quote fs-1 d-block mb-3 text-secondary"></i>
+            <h6 class="fw-bold">No Reviews Yet</h6>
+            <p class="small mb-0">Complete teaching sessions to receive ratings and student testimonials.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

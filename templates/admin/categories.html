@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Skill Categories - Admin - Skill Swap{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-folder2-open text-primary me-2"></i>Skill Categories</h3>
+    <p class="text-muted mb-0">Create, view, update, and delete skill categories (Full CRUD).</p>
+  </div>
+  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+    <i class="bi bi-plus-lg me-1"></i> Add Category
+  </button>
+</div>
+
+<!-- Categories Table -->
+<div class="card shadow-sm border-0">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 80px;">ID</th>
+            <th>Category Name</th>
+            <th>Associated Skills</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in categories %}
+            <tr>
+              <td><code>#{{ c.category_id }}</code></td>
+              <td>
+                <span class="fw-bold fs-6">{{ c.category_name }}</span>
+              </td>
+              <td>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                  {{ c.skill_count }} skills
+                </span>
+              </td>
+              <td class="text-end">
+                <div class="d-inline-flex gap-2">
+                  <!-- Edit Category Trigger -->
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editModal{{ c.category_id }}">
+                    <i class="bi bi-pencil me-1"></i> Edit
+                  </button>
+
+                  <!-- Delete Category Form -->
+                  <form method="POST" action="{{ url_for('admin_delete_category', category_id=c.category_id) }}" onsubmit="return confirm('Delete category {{ c.category_name }}?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                      <i class="bi bi-trash"></i> Delete
+                    </button>
+                  </form>
+                </div>
+
+                <!-- Edit Modal -->
+                <div class="modal fade" id="editModal{{ c.category_id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog text-start">
+                    <div class="modal-content border-0 shadow">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Edit Category</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <form method="POST" action="{{ url_for('admin_edit_category', category_id=c.category_id) }}">
+                        <div class="modal-body">
+                          <div class="mb-3">
+                            <label for="cat_name_{{ c.category_id }}" class="form-label fw-semibold small">Category Name</label>
+                            <input type="text" class="form-control" id="cat_name_{{ c.category_id }}" name="category_name" value="{{ c.category_name }}" required>
+                          </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle text-primary me-2"></i>Add New Skill Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_categories') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="category_name" class="form-label fw-semibold small">Category Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="category_name" name="category_name" required placeholder="e.g. Data Science & AI">
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Skill Swap Management System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">Hello, {{ current_user.name }}!</h3>
+    <p class="text-muted mb-0">Overview of your skill offerings, learning swaps, and upcoming sessions.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('browse_skills') }}" class="btn btn-primary me-2">
+      <i class="bi bi-search me-1"></i> Browse Skills
+    </a>
+    <a href="{{ url_for('my_skills') }}" class="btn btn-outline-primary">
+      <i class="bi bi-plus-circle me-1"></i> Add / Manage Skills
+    </a>
+  </div>
+</div>
+
+<!-- Stat Cards Grid -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-2">
+    <div class="card stat-card stat-success h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="stat-number">{{ stats.offering_count }}</div>
+          <div class="stat-label">Offered Skills</div>
+        </div>
+        <div class="stat-icon text-success"><i class="bi bi-award"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-2">
+    <div class="card stat-card stat-info h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="stat-number">{{ stats.learning_count }}</div>
+          <div class="stat-label">Learning Goals</div>
+        </div>
+        <div class="stat-icon text-info"><i class="bi bi-mortarboard"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-2">
+    <div class="card stat-card stat-warning h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="stat-number">{{ stats.pending_sent }}</div>
+          <div class="stat-label">Sent Pending</div>
+        </div>
+        <div class="stat-icon text-warning"><i class="bi bi-send"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-2">
+    <div class="card stat-card stat-warning h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="stat-number">{{ stats.pending_received }}</div>
+          <div class="stat-label">Received Pending</div>
+        </div>
+        <div class="stat-icon text-warning"><i class="bi bi-inbox"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-2">
+    <div class="card stat-card stat-info h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="stat-number">{{ stats.upcoming_sessions }}</div>
+          <div class="stat-label">Upcoming Sessions</div>
+        </div>
+        <div class="stat-icon text-info"><i class="bi bi-calendar-check"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-2">
+    <div class="card stat-card stat-success h-100">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="stat-number">
+            {% if stats.avg_rating %}
+              {{ stats.avg_rating }} <small class="text-warning fs-6">★</small>
+            {% else %}
+              <span class="fs-5 text-muted">N/A</span>
+            {% endif %}
+          </div>
+          <div class="stat-label">Teacher Rating</div>
+        </div>
+        <div class="stat-icon text-warning"><i class="bi bi-star"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Upcoming Sessions -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Next Upcoming Sessions</span>
+        <a href="{{ url_for('sessions_view') }}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+      </div>
+      <div class="card-body p-0">
+        {% if upcoming_sessions %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Skill / Role</th>
+                  <th>Partner</th>
+                  <th>Date & Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in upcoming_sessions %}
+                  <tr>
+                    <td>
+                      <div class="fw-semibold">{{ s.skill_name }}</div>
+                      <span class="badge bg-light text-dark border small">{{ s.category_name }}</span>
+                    </td>
+                    <td>
+                      {% if s.requester_id == current_user.id %}
+                        <div>{{ s.teacher_name }}</div>
+                        <small class="text-muted"><i class="bi bi-person-badge me-1"></i>Teacher</small>
+                      {% else %}
+                        <div>{{ s.learner_name }}</div>
+                        <small class="text-muted"><i class="bi bi-book me-1"></i>Learner</small>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div>{{ s.session_date }}</div>
+                      <small class="text-muted">{{ s.start_time }} - {{ s.end_time }}</small>
+                    </td>
+                    <td>
+                      <span class="badge badge-status badge-status-scheduled">{{ s.status }}</span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="p-4 text-center text-muted">
+            <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>
+            No upcoming sessions scheduled right now.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Swap Activity -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-activity me-2 text-success"></i>Recent Learning Requests</span>
+        <a href="{{ url_for('requests_view') }}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_requests %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Skill</th>
+                  <th>Direction</th>
+                  <th>Partner</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in recent_requests %}
+                  <tr>
+                    <td>
+                      <div class="fw-semibold">{{ r.skill_name }}</div>
+                      <small class="text-muted">{{ r.category_name }}</small>
+                    </td>
+                    <td>
+                      {% if r.requester_id == current_user.id %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-arrow-up-right me-1"></i>Sent</span>
+                      {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-arrow-down-left me-1"></i>Received</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if r.requester_id == current_user.id %}
+                        {{ r.teacher_name }}
+                      {% else %}
+                        {{ r.learner_name }}
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if r.status == 'Pending' %}
+                        <span class="badge badge-status badge-status-pending">Pending</span>
+                      {% elif r.status == 'Accepted' %}
+                        <span class="badge badge-status badge-status-accepted">Accepted</span>
+                      {% elif r.status == 'Rejected' %}
+                        <span class="badge badge-status badge-status-rejected">Rejected</span>
+                      {% else %}
+                        <span class="badge badge-status badge-status-cancelled">Cancelled</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="p-4 text-center text-muted">
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+            No swap requests sent or received yet.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Interactive SQL Query Console - Skill Swap{% endblock %}
+
+{% block styles %}
+<!-- CodeMirror 5 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/eclipse.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+  <div>
+    <h3 class="fw-bold mb-1">
+      <i class="bi bi-terminal text-primary me-2"></i>Interactive SQL Query Console
+    </h3>
+    <p class="text-muted mb-0 small">
+      Execute raw SQL queries against MySQL database <code>skill_swap_db</code> with real-time tabular output.
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <!-- Mode Switch (Admin Only) -->
+    {% if is_admin %}
+      <div class="form-check form-switch d-flex align-items-center mb-0 me-2">
+        <input class="form-check-input" type="checkbox" role="switch" id="writeModeSwitch">
+        <label class="form-check-label small fw-semibold ms-2" for="writeModeSwitch">Enable Write Mode</label>
+      </div>
+      <span class="badge bg-success" id="writeModeBadge">Safe Mode (Read-Only)</span>
+      <!-- Reset Database Button (Admin Only) -->
+      <button type="button" class="btn btn-outline-danger btn-sm ms-2" id="btnResetDatabase" title="Restores initial schema and demo seed data">
+        <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Database
+      </button>
+    {% else %}
+      <span class="badge bg-success">Safe Mode (Read-Only)</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Left Column: Schema Explorer & Query History -->
+  <div class="col-lg-4 col-xl-3">
+    <!-- 1. Schema Explorer -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+        <span class="fw-bold small text-uppercase text-secondary">
+          <i class="bi bi-diagram-3 me-1 text-primary"></i> Schema Explorer
+        </span>
+        <span class="badge bg-secondary-subtle text-secondary small">{{ tables_schema|length }} tables</span>
+      </div>
+      <div class="card-body p-2 schema-explorer-tree">
+        <div class="accordion accordion-flush" id="schemaAccordion">
+          {% for tbl_name, cols in tables_schema.items() %}
+            <div class="accordion-item border-0 mb-1">
+              <h2 class="accordion-header" id="heading_{{ tbl_name }}">
+                <button class="accordion-button collapsed py-2 px-2 rounded bg-light small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_{{ tbl_name }}">
+                  <i class="bi bi-table text-primary me-2"></i>
+                  <span class="text-truncate">{{ tbl_name }}</span>
+                </button>
+              </h2>
+              <div id="collapse_{{ tbl_name }}" class="accordion-collapse collapse" data-bs-parent="#schemaAccordion">
+                <div class="accordion-body p-2 bg-white border rounded mt-1">
+                  <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                    <span class="text-muted small" style="font-size: 0.75rem;">{{ cols|length }} columns</span>
+                    <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 schema-table-insert" data-table="{{ tbl_name }}" style="font-size: 0.75rem;">
+                      <i class="bi bi-box-arrow-in-up-right me-1"></i>SELECT *
+                    </button>
+                  </div>
+                  <ul class="schema-column-list p-0 mb-0">
+                    {% for c in cols %}
+                      <li>
+                        <span>
+                          {% if c.COLUMN_KEY == 'PRI' %}
+                            <span class="badge bg-danger py-0 px-1 me-1" title="Primary Key" style="font-size: 0.65rem;">PK</span>
+                          {% elif c.REFERENCED_TABLE_NAME %}
+                            <span class="badge bg-warning text-dark py-0 px-1 me-1" title="Foreign Key -> {{ c.REFERENCED_TABLE_NAME }}" style="font-size: 0.65rem;">FK</span>
+                          {% else %}
+                            <i class="bi bi-dot text-muted"></i>
+                          {% endif %}
+                          {{ c.COLUMN_NAME }}
+                        </span>
+                        <span class="text-muted" style="font-size: 0.7rem;">{{ c.COLUMN_TYPE }}</span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Query History -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+        <span class="fw-bold small text-uppercase text-secondary">
+          <i class="bi bi-clock-history me-1 text-info"></i> Query History
+        </span>
+        <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0 small" id="btnClearHistory" style="font-size: 0.75rem;">
+          Clear
+        </button>
+      </div>
+      <div class="card-body p-1 history-list" id="queryHistoryList">
+        <!-- Rendered by JS from localStorage -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Code Editor & Execution Results -->
+  <div class="col-lg-8 col-xl-9">
+    <!-- Query Editor Card -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
+          <label for="sampleQueriesSelect" class="form-label mb-0 small fw-bold text-nowrap">
+            <i class="bi bi-bookmark-star text-warning me-1"></i> Sample Queries:
+          </label>
+          <select class="form-select form-select-sm" id="sampleQueriesSelect">
+            <option value="">-- Choose Viva / Demo Query ({{ sample_queries|length }} Available) --</option>
+            {% for q in sample_queries %}
+              <option value="{{ q.sql }}">{{ q.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnClearQuery">
+            <i class="bi bi-eraser me-1"></i> Clear
+          </button>
+          <button type="button" class="btn btn-primary btn-sm px-3" id="btnRunQuery">
+            <span class="spinner-border spinner-border-sm me-1 d-none" id="runSpinner"></span>
+            <i class="bi bi-play-fill me-1"></i> Run Query <kbd class="bg-primary-subtle text-primary border ms-1 small">Ctrl+Enter</kbd>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="sql-editor-container">
+          <textarea id="sqlQueryEditor">SELECT user_id, name, email, role FROM `USER` ORDER BY user_id ASC LIMIT 10;</textarea>
+        </div>
+      </div>
+      <div class="card-footer bg-light py-1 px-3 d-flex justify-content-between align-items-center small text-muted">
+        <span>Supports multiple statements separated by <code>;</code></span>
+        <button type="button" class="btn btn-outline-success btn-xs py-0 px-2" id="btnExportCSV" disabled>
+          <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Active Table as CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Query Results Section -->
+    <div id="queryResultsContainer">
+      <div class="alert alert-light border text-center py-4 text-muted">
+        <i class="bi bi-terminal-split fs-3 d-block mb-2 text-secondary"></i>
+        Click <strong>Run Query</strong> or press <strong>Ctrl+Enter</strong> to view results.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- CodeMirror 5 JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/sql/sql.min.js"></script>
+<!-- SQL Console Custom JS -->
+<script src="{{ url_for('static', filename='js/sql_console.js') }}"></script>
+{% endblock %}

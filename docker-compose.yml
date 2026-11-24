@@ -1,0 +1,38 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: skill_swap_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-bablubhai@2007}
+      MYSQL_DATABASE: skill_swap_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: skill_swap_web
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-bablubhai@2007}
+      DB_NAME: skill_swap_db
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-prod-secret-key-skillswap-2026}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
