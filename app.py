@@ -2299,60 +2299,7 @@ SAMPLE_QUERIES = [
 @app.route("/sql")
 @login_required
 def sql_console():
-    is_admin = session.get("role") == "Admin"
-    conn = None
-    cursor = None
-    tables_schema = {}
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Get list of tables in skill_swap_db
-        cursor.execute(
-            """
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = %s
-            ORDER BY table_name ASC
-            """,
-            (DB_NAME,)
-        )
-        table_rows = cursor.fetchall()
-
-        for t in table_rows:
-            tbl_name = t["TABLE_NAME"]
-            cursor.execute(
-                """
-                SELECT c.column_name, c.column_type, c.is_nullable, c.column_key, c.column_default,
-                       k.referenced_table_name, k.referenced_column_name
-                FROM information_schema.columns c
-                LEFT JOIN information_schema.key_column_usage k
-                  ON c.table_schema = k.table_schema
-                 AND c.table_name = k.table_name
-                 AND c.column_name = k.column_name
-                 AND k.referenced_table_name IS NOT NULL
-                WHERE c.table_schema = %s AND c.table_name = %s
-                ORDER BY c.ordinal_position ASC
-                """,
-                (DB_NAME, tbl_name)
-            )
-            tables_schema[tbl_name] = cursor.fetchall()
-
-    except DBError as err:
-        flash(f"Could not load schema explorer: {err.msg}", "warning")
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
-
-    return render_template(
-        "sql_console.html",
-        is_admin=is_admin,
-        tables_schema=tables_schema,
-        sample_queries=SAMPLE_QUERIES
-    )
+    return redirect(url_for("dashboard"))
 
 
 @app.route("/sql/run", methods=["POST"])
